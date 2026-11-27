@@ -136,22 +136,19 @@ On macOS, use `Cmd` instead of `Ctrl`.
 
 ## Publishing to the Marketplace
 
-Publishing to the Visual Studio Marketplace is free. You need a Microsoft/Azure DevOps account and a publisher; the `publisher` in `package.json` must match that ID.
+Publishing to the Visual Studio Marketplace is free. This project uses **Trusted Publishing** with GitHub Actions, so no Azure DevOps account or Personal Access Token is required.
 
-1. Create the publisher at [marketplace.visualstudio.com/manage](https://marketplace.visualstudio.com/manage). For the current `package.json`, the ID must be `basilio`; if you choose another one, update `publisher` in `package.json`.
-2. Create a Personal Access Token in Azure DevOps with the **Marketplace → Manage** permission.
-3. Sign in from the project terminal:
+The publisher is `basilio` (set in `package.json`) and the workflow is `.github/workflows/publish.yml`.
 
-   ```sh
-   npx vsce login basilio
-   ```
+1. Open the [publisher management page](https://marketplace.visualstudio.com/manage), select the `basilio` publisher, and open **Trusted Publishing**.
+2. Create a policy with these values:
+   - **Repository owner:** `alba-97`
+   - **Repository:** `pixel-art-spritesheet-editor`
+   - **Workflow:** `publish.yml`
+   - **Environment:** leave empty
+3. In GitHub, open **Actions → Publish Extension → Run workflow** on the `main` branch.
 
-   Paste the token when prompted. Do not share it in chat.
-4. Publish:
-
-   ```sh
-   npm run publish
-   ```
+The workflow builds and publishes the extension using GitHub OIDC. The first run publishes the current version; for later releases, bump the version in `package.json`, commit and push, then run the workflow again.
 
 The published ID will be `basilio.pixel-art-editor` and the page will be:
 
