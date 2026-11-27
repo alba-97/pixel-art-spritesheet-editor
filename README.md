@@ -52,6 +52,16 @@ Open this folder in VS Code and press F5 to launch the Extension Development Hos
 - If you already had another PNG association, VS Code may ask you to choose the default editor. You can change it at any time with **Reopen Editor With... → Configure Default Editor**.
 - Change the UI language with the selector in the top bar (Auto, English, or Español) or with the `pixelArt.language` setting.
 
+If PNGs still open in the built-in Image Preview, your user settings may contain:
+
+```json
+"workbench.editorAssociations": {
+  "*.png": "imagePreview.previewEditor"
+}
+```
+
+Change the value to `pixelArt.editor`, or remove the entry to let the extension's default association apply.
+
 ### Selection and magic wand
 
 - With the **Magic Wand** (`W`), click a pixel to select the entire contiguous area with exactly the same color and transparency.
@@ -93,6 +103,8 @@ The `pixelArt.language` setting accepts `auto`, `en`, and `es` and is saved in y
 Animation plays only in the preview; the file remains a normal PNG spritesheet.
 
 ## Shortcuts
+
+Keyboard shortcuts are handled by the editor when the canvas has keyboard focus. Click the canvas first. When a text, number, color, range, or select field is focused, the shortcut is left to that field.
 
 | Action | Shortcut |
 | --- | --- |

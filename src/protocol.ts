@@ -43,7 +43,14 @@ export interface SaveErrorMessage {
   message: string;
 }
 
-export type EditorAction = 'undo' | 'redo';
+export type EditorAction =
+  | 'undo'
+  | 'redo'
+  | 'copy'
+  | 'cut'
+  | 'paste'
+  | 'selectAll'
+  | 'deselect';
 
 export interface ActionMessage {
   type: 'action';
@@ -79,6 +86,12 @@ export interface SaveRequestMessage {
   type: 'save';
 }
 
+export interface FocusStateMessage {
+  type: 'focusState';
+  focused: boolean;
+  editing: boolean;
+}
+
 export interface SetLanguageMessage {
   type: 'setLanguage';
   preference: LanguagePreference;
@@ -89,7 +102,8 @@ export type WebviewMessage =
   | DirtyMessage
   | SerializedMessage
   | SaveRequestMessage
-  | SetLanguageMessage;
+  | SetLanguageMessage
+  | FocusStateMessage;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -125,6 +139,10 @@ export function parseWebviewMessage(value: unknown): WebviewMessage | undefined 
     case 'setLanguage':
       return isLanguagePreference(value.preference)
         ? { type: 'setLanguage', preference: value.preference }
+        : undefined;
+    case 'focusState':
+      return typeof value.focused === 'boolean' && typeof value.editing === 'boolean'
+        ? { type: 'focusState', focused: value.focused, editing: value.editing }
         : undefined;
     default:
       return undefined;

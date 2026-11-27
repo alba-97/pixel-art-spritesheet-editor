@@ -82,6 +82,11 @@ export function activate(context: vscode.ExtensionContext): void {
     provider,
     vscode.commands.registerCommand('pixelArt.undo', () => provider.triggerAction('undo')),
     vscode.commands.registerCommand('pixelArt.redo', () => provider.triggerAction('redo')),
+    vscode.commands.registerCommand('pixelArt.copy', () => provider.triggerAction('copy')),
+    vscode.commands.registerCommand('pixelArt.cut', () => provider.triggerAction('cut')),
+    vscode.commands.registerCommand('pixelArt.paste', () => provider.triggerAction('paste')),
+    vscode.commands.registerCommand('pixelArt.selectAll', () => provider.triggerAction('selectAll')),
+    vscode.commands.registerCommand('pixelArt.deselect', () => provider.triggerAction('deselect')),
     vscode.commands.registerCommand('pixelArt.newSprite', newSprite),
     vscode.commands.registerCommand('pixelArt.openWith', openWithPixelEditor)
   );

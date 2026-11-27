@@ -89,6 +89,31 @@
         "command": "pixelArt.redo",
         "title": "%command.redo.title%",
         "category": "Pixel Art"
+      },
+      {
+        "command": "pixelArt.copy",
+        "title": "%command.copy.title%",
+        "category": "Pixel Art"
+      },
+      {
+        "command": "pixelArt.cut",
+        "title": "%command.cut.title%",
+        "category": "Pixel Art"
+      },
+      {
+        "command": "pixelArt.paste",
+        "title": "%command.paste.title%",
+        "category": "Pixel Art"
+      },
+      {
+        "command": "pixelArt.selectAll",
+        "title": "%command.selectAll.title%",
+        "category": "Pixel Art"
+      },
+      {
+        "command": "pixelArt.deselect",
+        "title": "%command.deselect.title%",
+        "category": "Pixel Art"
       }
     ],
     "menus": {
@@ -112,6 +137,26 @@
         {
           "command": "pixelArt.redo",
           "when": "activeCustomEditorId == 'pixelArt.editor'"
+        },
+        {
+          "command": "pixelArt.copy",
+          "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
+        },
+        {
+          "command": "pixelArt.cut",
+          "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
+        },
+        {
+          "command": "pixelArt.paste",
+          "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
+        },
+        {
+          "command": "pixelArt.selectAll",
+          "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
+        },
+        {
+          "command": "pixelArt.deselect",
+          "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
         }
       ]
     },
@@ -133,6 +178,36 @@
         "key": "ctrl+shift+z",
         "mac": "cmd+y",
         "when": "activeCustomEditorId == 'pixelArt.editor'"
+      },
+      {
+        "command": "pixelArt.copy",
+        "key": "ctrl+c",
+        "mac": "cmd+c",
+        "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
+      },
+      {
+        "command": "pixelArt.cut",
+        "key": "ctrl+x",
+        "mac": "cmd+x",
+        "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
+      },
+      {
+        "command": "pixelArt.paste",
+        "key": "ctrl+v",
+        "mac": "cmd+v",
+        "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
+      },
+      {
+        "command": "pixelArt.selectAll",
+        "key": "ctrl+a",
+        "mac": "cmd+a",
+        "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
+      },
+      {
+        "command": "pixelArt.deselect",
+        "key": "ctrl+d",
+        "mac": "cmd+d",
+        "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
       }
     ]
   },

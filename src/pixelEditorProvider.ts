@@ -244,6 +244,10 @@ export class PixelEditorProvider implements vscode.CustomEditorProvider<PixelDoc
             void vscode.window.showWarningMessage(hostStrings().languageUpdateFailed);
           }
           break;
+        case 'focusState':
+          await vscode.commands.executeCommand('setContext', 'pixelArt.focused', message.focused);
+          await vscode.commands.executeCommand('setContext', 'pixelArt.editingText', message.editing);
+          break;
         case 'save':
           await vscode.commands.executeCommand('workbench.action.files.save');
           break;

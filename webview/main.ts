@@ -351,6 +351,22 @@ function readInitialLanguage(): UILanguage {
   return navigator.language.toLowerCase().startsWith('es') ? 'es' : 'en';
 }
 
+function isEditingElement(element: Element | null): boolean {
+  if (!(element instanceof HTMLElement)) {
+    return false;
+  }
+  if (element.isContentEditable) {
+    return true;
+  }
+  if (element.tagName === 'TEXTAREA' || element.tagName === 'SELECT') {
+    return true;
+  }
+  if (element instanceof HTMLInputElement) {
+    return !['checkbox', 'radio', 'button', 'submit', 'reset'].includes(element.type);
+  }
+  return false;
+}
+
 export class PixelEditor {
   private prefs: Prefs = readPrefs();
   private language: UILanguage = 'en';
@@ -526,10 +542,28 @@ export class PixelEditor {
         this.showToast(this.t('toast.saveError', { message: message.message }), true);
         break;
       case 'action':
-        if (message.action === 'undo') {
-          this.undo();
-        } else {
-          this.redo();
+        switch (message.action) {
+          case 'undo':
+            this.undo();
+            break;
+          case 'redo':
+            this.redo();
+            break;
+          case 'copy':
+            this.copySelection();
+            break;
+          case 'cut':
+            this.cutSelection();
+            break;
+          case 'paste':
+            this.pasteClipboard();
+            break;
+          case 'selectAll':
+            this.selectAll();
+            break;
+          case 'deselect':
+            this.deselect();
+            break;
         }
         break;
     }
@@ -633,6 +667,29 @@ export class PixelEditor {
     this.view.addEventListener('pointerleave', () => this.onPointerLeave());
     this.view.addEventListener('wheel', (event) => this.onWheel(event), { passive: false });
     this.view.addEventListener('contextmenu', (event) => event.preventDefault());
+
+    let focused = false;
+    const postFocusState = (): void => {
+      vscode.postMessage({
+        type: 'focusState',
+        focused,
+        editing: isEditingElement(document.activeElement)
+      });
+    };
+    window.addEventListener('focus', () => {
+      focused = true;
+      postFocusState();
+    });
+    window.addEventListener('blur', () => {
+      focused = false;
+      postFocusState();
+    });
+    document.addEventListener('pointerdown', () => {
+      focused = true;
+      window.setTimeout(postFocusState, 0);
+    });
+    document.addEventListener('focusin', () => window.setTimeout(postFocusState, 0));
+    document.addEventListener('focusout', () => window.setTimeout(postFocusState, 0));
 
     window.addEventListener('keydown', (event) => this.onKeyDown(event));
     window.addEventListener('keyup', (event) => this.onKeyUp(event));
@@ -1157,6 +1214,7 @@ export class PixelEditor {
     if (!this.buffer) {
       return;
     }
+    this.view.focus();
     if (event.button === 1 || (event.button === 0 && (this.spaceDown || this.prefs.tool === 'hand'))) {
       event.preventDefault();
       this.panning = true;
@@ -1432,12 +1490,7 @@ export class PixelEditor {
 
   private onKeyDown(event: KeyboardEvent): void {
     const target = event.target instanceof HTMLElement ? event.target : null;
-    const isField =
-      target !== null &&
-      (target.tagName === 'INPUT' ||
-        target.tagName === 'SELECT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable);
+    const isField = isEditingElement(target);
     if (isField) {
       if (event.key === 'Escape' && target) {
         target.blur();
@@ -1452,32 +1505,6 @@ export class PixelEditor {
       if (key === 's') {
         event.preventDefault();
         this.requestSave();
-        return;
-      }
-      if (key === 'a') {
-        event.preventDefault();
-        this.selectAll();
-        return;
-      }
-      if (key === 'd') {
-        event.preventDefault();
-        this.deselect();
-        return;
-      }
-      if (key === 'c') {
-        event.preventDefault();
-        this.copySelection();
-        return;
-      }
-      if (key === 'x') {
-        event.preventDefault();
-        this.cutSelection();
-        return;
-      }
-      if (key === 'v') {
-        event.preventDefault();
-        this.pasteClipboard();
-        return;
       }
       return;
     }
