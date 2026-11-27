@@ -2,7 +2,7 @@
 
 A complete pixel art editor inside VS Code, with drawing and selection tools, undo history, and a spritesheet mode with animation preview.
 
-![Pixel Art & Spritesheet Editor](docs/screenshot.png)
+![Pixel Art & Spritesheet Editor](https://raw.githubusercontent.com/alba-97/pixel-art-spritesheet-editor/main/docs/screenshot.png)
 
 ## Features
 
@@ -28,7 +28,7 @@ A complete pixel art editor inside VS Code, with drawing and selection tools, un
 ### From a VSIX file
 
 ```sh
-code --install-extension pixel-art-editor-0.5.1.vsix
+code --install-extension pixel-art-editor-0.5.2.vsix
 ```
 
 You can also open the Extensions view, click the three dots, choose **Install from VSIX...**, and select the file.
@@ -156,8 +156,6 @@ Publishing to the Visual Studio Marketplace is free. You need a Microsoft/Azure 
 The published ID will be `basilio.pixel-art-editor` and the page will be:
 
 `https://marketplace.visualstudio.com/items?itemName=basilio.pixel-art-editor`
-
-The README screenshot uses a local path. To show it on the Marketplace, host it at a public URL or configure a public repository.
 
 ## Development
 

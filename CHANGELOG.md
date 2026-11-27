@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2
+
+- README screenshot now uses an absolute public URL, so it shows in the extension details and on the Marketplace.
+- Added repository, homepage, and issue tracker metadata.
+
 ## 0.5.1
 
 - Corregido el nombre duplicado en el selector de editores: el editor personalizado se llama **Pixel Art Editor** y la extensión **Pixel Art & Spritesheet Editor**.

@@ -2,10 +2,18 @@
   "name": "pixel-art-editor",
   "displayName": "Pixel Art & Spritesheet Editor",
   "description": "%description%",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "publisher": "basilio",
   "author": "Basilio",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alba-97/pixel-art-spritesheet-editor.git"
+  },
+  "homepage": "https://github.com/alba-97/pixel-art-spritesheet-editor#readme",
+  "bugs": {
+    "url": "https://github.com/alba-97/pixel-art-spritesheet-editor/issues"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -134,8 +142,8 @@
     "devbuild": "node esbuild.mjs",
     "typecheck": "tsc --noEmit",
     "harness": "node dev/build-harness.mjs",
-    "package": "npm run build && vsce package --no-dependencies --allow-missing-repository --no-rewrite-relative-links",
-    "publish": "npm run build && vsce publish --no-dependencies --allow-missing-repository --no-rewrite-relative-links"
+    "package": "npm run build && vsce package --no-dependencies",
+    "publish": "npm run build && vsce publish --no-dependencies"
   },
   "devDependencies": {
     "@types/node": "^20.17.10",
