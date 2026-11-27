@@ -165,19 +165,19 @@
         "command": "pixelArt.undo",
         "key": "ctrl+z",
         "mac": "cmd+z",
-        "when": "activeCustomEditorId == 'pixelArt.editor'"
+        "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
       },
       {
         "command": "pixelArt.redo",
         "key": "ctrl+y",
         "mac": "cmd+shift+z",
-        "when": "activeCustomEditorId == 'pixelArt.editor'"
+        "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
       },
       {
         "command": "pixelArt.redo",
         "key": "ctrl+shift+z",
         "mac": "cmd+y",
-        "when": "activeCustomEditorId == 'pixelArt.editor'"
+        "when": "activeCustomEditorId == 'pixelArt.editor' && pixelArt.focused && !pixelArt.editingText"
       },
       {
         "command": "pixelArt.copy",
