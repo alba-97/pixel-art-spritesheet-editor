@@ -1,0 +1,8 @@
+node_modules/
+dist/
+media/main.js
+dev/harness.html
+dev/screen*.png
+.playwright-mcp/
+*.vsix
+.DS_Store

@@ -1,0 +1,11 @@
+{
+  "description": "Pixel art and spritesheet editor with animation preview, inside VS Code.",
+  "command.newSprite.title": "New Sprite",
+  "command.openWith.title": "Open Image with Editor",
+  "command.undo.title": "Undo",
+  "command.redo.title": "Redo",
+  "config.language.description": "Language of the editor interface. Auto uses Spanish when VS Code is in Spanish; any other language uses English.",
+  "config.language.auto": "Auto: follow the VS Code display language",
+  "config.language.en": "English",
+  "config.language.es": "Spanish"
+}

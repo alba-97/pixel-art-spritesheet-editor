@@ -1,0 +1,11 @@
+{
+  "description": "Editor de pixel art y spritesheets con previsualización de animación, dentro de VS Code.",
+  "command.newSprite.title": "Nuevo sprite",
+  "command.openWith.title": "Abrir imagen con el editor",
+  "command.undo.title": "Deshacer",
+  "command.redo.title": "Rehacer",
+  "config.language.description": "Idioma de la interfaz del editor. Automático usa español cuando VS Code está en español; cualquier otro idioma usa inglés.",
+  "config.language.auto": "Automático: seguir el idioma de VS Code",
+  "config.language.en": "Inglés",
+  "config.language.es": "Español"
+}

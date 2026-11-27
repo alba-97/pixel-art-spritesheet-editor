@@ -1,0 +1,147 @@
+{
+  "name": "pixel-art-editor",
+  "displayName": "Pixel Art & Spritesheet Editor",
+  "description": "%description%",
+  "version": "0.5.1",
+  "publisher": "basilio",
+  "author": "Basilio",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "pixel art",
+    "sprite",
+    "spritesheet",
+    "animation",
+    "editor",
+    "piskel"
+  ],
+  "icon": "media/icon.png",
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Pixel Art & Spritesheet Editor",
+      "properties": {
+        "pixelArt.language": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "en",
+            "es"
+          ],
+          "enumDescriptions": [
+            "%config.language.auto%",
+            "%config.language.en%",
+            "%config.language.es%"
+          ],
+          "default": "auto",
+          "scope": "application",
+          "description": "%config.language.description%"
+        }
+      }
+    },
+    "configurationDefaults": {
+      "workbench.editorAssociations": {
+        "*.png": "pixelArt.editor"
+      }
+    },
+    "customEditors": [
+      {
+        "viewType": "pixelArt.editor",
+        "displayName": "Pixel Art Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.png"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "pixelArt.newSprite",
+        "title": "%command.newSprite.title%",
+        "category": "Pixel Art"
+      },
+      {
+        "command": "pixelArt.openWith",
+        "title": "%command.openWith.title%",
+        "category": "Pixel Art"
+      },
+      {
+        "command": "pixelArt.undo",
+        "title": "%command.undo.title%",
+        "category": "Pixel Art"
+      },
+      {
+        "command": "pixelArt.redo",
+        "title": "%command.redo.title%",
+        "category": "Pixel Art"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "pixelArt.openWith",
+          "when": "resourceExtname == .png",
+          "group": "navigation@30"
+        },
+        {
+          "command": "pixelArt.newSprite",
+          "when": "explorerResourceIsFolder",
+          "group": "navigation@31"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "pixelArt.undo",
+          "when": "activeCustomEditorId == 'pixelArt.editor'"
+        },
+        {
+          "command": "pixelArt.redo",
+          "when": "activeCustomEditorId == 'pixelArt.editor'"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "pixelArt.undo",
+        "key": "ctrl+z",
+        "mac": "cmd+z",
+        "when": "activeCustomEditorId == 'pixelArt.editor'"
+      },
+      {
+        "command": "pixelArt.redo",
+        "key": "ctrl+y",
+        "mac": "cmd+shift+z",
+        "when": "activeCustomEditorId == 'pixelArt.editor'"
+      },
+      {
+        "command": "pixelArt.redo",
+        "key": "ctrl+shift+z",
+        "mac": "cmd+y",
+        "when": "activeCustomEditorId == 'pixelArt.editor'"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs --production",
+    "watch": "node esbuild.mjs --watch",
+    "devbuild": "node esbuild.mjs",
+    "typecheck": "tsc --noEmit",
+    "harness": "node dev/build-harness.mjs",
+    "package": "npm run build && vsce package --no-dependencies --allow-missing-repository --no-rewrite-relative-links",
+    "publish": "npm run build && vsce publish --no-dependencies --allow-missing-repository --no-rewrite-relative-links"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.2"
+  }
+}

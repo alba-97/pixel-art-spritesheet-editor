@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="__LANGUAGE__" data-initial-language="__LANGUAGE__">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="__CSP__">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="__STYLE_URI__">
+  <title>Pixel Art &amp; Spritesheet Editor</title>
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="group" id="toolGroup" role="toolbar" aria-label="Tools"></div>
+      <div class="vsep"></div>
+      <div class="group">
+        <label class="field" data-i18n-title="brush.sizeTitle" title="Brush size ([ and ])">
+          <span data-i18n="brush.label">Brush</span>
+          <input id="brushSize" type="number" min="1" max="32" value="1">
+        </label>
+        <label class="field slider-field" data-i18n-title="opacity.title" title="Tool opacity">
+          <span data-i18n="opacity.label">Opacity</span>
+          <input id="opacity" type="range" min="1" max="100" value="100">
+          <span class="mono dim" id="opacityVal">100%</span>
+        </label>
+      </div>
+      <div class="vsep"></div>
+      <div class="group">
+        <button id="swapColors" class="icon-btn" data-i18n-title="colors.swap" title="Swap colors (X)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h12l-3-3"/><path d="M20 17H8l3 3"/></svg>
+        </button>
+        <label class="color-field" data-i18n-title="colors.primary" title="Primary color">
+          <input id="primaryColor" type="color" value="#000000">
+          <span class="color-tag">1</span>
+        </label>
+        <label class="color-field" data-i18n-title="colors.secondary" title="Secondary color (right click)">
+          <input id="secondaryColor" type="color" value="#ffffff">
+          <span class="color-tag">2</span>
+        </label>
+        <input id="hexInput" class="hex-input" maxlength="7" spellcheck="false" data-i18n-title="colors.hex" title="Primary color (#rrggbb)">
+      </div>
+      <div class="vsep"></div>
+      <div class="group">
+        <label class="lang-field" data-i18n-title="language.title" title="Interface language">
+          <svg class="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18"/><path d="M12 3a15 15 0 0 0 0 18"/></svg>
+          <select id="languageSelect" data-i18n-title="language.title" title="Interface language">
+            <option value="auto" data-i18n="language.auto">Auto</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </label>
+      </div>
+      <div class="spacer"></div>
+      <div class="group">
+        <button id="undoBtn" class="icon-btn" data-i18n-title="undo.title" title="Undo (Ctrl+Z)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+        </button>
+        <button id="redoBtn" class="icon-btn" data-i18n-title="redo.title" title="Redo (Ctrl+Y)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
+        </button>
+        <button id="saveBtn" class="primary-btn" data-i18n="save.label" data-i18n-title="save.title" title="Save (Ctrl+S)">Save</button>
+      </div>
+    </header>
+
+    <main>
+      <div id="viewport">
+        <canvas id="view" tabindex="0"></canvas>
+        <div id="overlay" class="overlay">
+          <div class="spinner"></div>
+          <span id="overlayText" data-i18n="loading.image">Loading image...</span>
+        </div>
+        <div class="hud">
+          <button id="zoomOut" class="mini" data-i18n-title="zoom.out" title="Zoom out">&#8722;</button>
+          <button id="zoomReset" class="mini mono" data-i18n-title="zoom.reset" title="Zoom to 100%">100%</button>
+          <button id="zoomIn" class="mini" data-i18n-title="zoom.in" title="Zoom in">+</button>
+          <button id="fitBtn" class="mini" data-i18n="zoom.fitLabel" data-i18n-title="zoom.fit" title="Fit to window">Fit</button>
+          <button id="gridToggle" class="mini active" data-i18n="grid.label" data-i18n-title="grid.title" title="Toggle pixel grid">Grid</button>
+        </div>
+        <div id="toast" class="toast"></div>
+      </div>
+
+      <aside id="sidebar">
+        <section class="panel">
+          <header>
+            <h2 data-i18n="panel.spritesheet">Spritesheet</h2>
+            <label class="switch" data-i18n-title="sheet.toggleTitle" title="Enable spritesheet mode">
+              <input id="sheetEnabled" type="checkbox">
+              <span class="knob"></span>
+            </label>
+          </header>
+          <div id="sheetBody" class="stack">
+            <div class="grid2">
+              <label><span data-i18n="sheet.cellWidth">Cell width</span><input id="cellW" type="number" min="1" value="16"></label>
+              <label><span data-i18n="sheet.cellHeight">Cell height</span><input id="cellH" type="number" min="1" value="16"></label>
+              <label><span data-i18n="sheet.start">Start</span><input id="frameStart" type="number" min="1" value="1"></label>
+              <label><span data-i18n="sheet.end">End</span><input id="frameEnd" type="number" min="1" value="1"></label>
+            </div>
+            <div class="readout" id="sheetInfo" data-i18n="sheet.disabledInfo">Enable spritesheet mode</div>
+            <label class="inline"><span data-i18n="sheet.fps">FPS</span><input id="fps" type="number" min="1" max="60" value="8"></label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2 data-i18n="panel.animation">Animation</h2>
+            <span id="frameCounter" class="counter">&#8212;</span>
+          </header>
+          <div id="previewBox" class="preview-box checker">
+            <canvas id="preview"></canvas>
+          </div>
+          <div class="row">
+            <button id="prevFrame" class="icon-btn" data-i18n-title="frame.prev" title="Previous frame">&#9664;</button>
+            <button id="playBtn" class="primary-btn wide" data-i18n-title="play.title" title="Play or pause">&#9654; Play</button>
+            <button id="nextFrame" class="icon-btn" data-i18n-title="frame.next" title="Next frame">&#9654;</button>
+          </div>
+          <div class="row spread">
+            <label class="inline"><span data-i18n="preview.background">Background</span>
+              <select id="previewBg">
+                <option value="checker" data-i18n="preview.checker">Checkerboard</option>
+                <option value="theme" data-i18n="preview.theme">Theme</option>
+                <option value="#000000" data-i18n="preview.black">Black</option>
+                <option value="#ffffff" data-i18n="preview.white">White</option>
+                <option value="#ff00ff" data-i18n="preview.magenta">Magenta</option>
+              </select>
+            </label>
+            <label class="inline"><input type="checkbox" id="loop" checked> <span data-i18n="preview.loop">Loop</span></label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header><h2 data-i18n="panel.tool">Tool</h2></header>
+          <div class="stack" id="toolOptionsBody">
+            <div class="stack" data-tools="pencil eraser line rect ellipse">
+              <label><span data-i18n="tool.brushShape">Brush shape</span>
+                <select id="brushShape">
+                  <option value="square" data-i18n="brush.square">Square</option>
+                  <option value="circle" data-i18n="brush.circle">Circle</option>
+                </select>
+              </label>
+            </div>
+            <div data-tools="rect ellipse">
+              <label class="inline"><input type="checkbox" id="shapeFill"> <span data-i18n="shape.fill">Fill</span></label>
+            </div>
+            <div class="stack" data-tools="fill">
+              <label class="slider-field"><span data-i18n="fill.tolerance">Tolerance</span>
+                <input id="tolerance" type="range" min="0" max="100" value="0">
+                <span id="toleranceVal" class="mono dim">0</span>
+              </label>
+              <label class="inline"><input type="checkbox" id="contiguous" checked> <span data-i18n="fill.contiguous">Contiguous area only</span></label>
+            </div>
+            <p class="hint" data-tools="pencil eraser" data-i18n="hint.pencilEraser">Shift: draw a straight line.</p>
+            <p class="hint" data-tools="line" data-i18n="hint.line">Shift: snap to horizontal, vertical or 45°. Alt: draw from the center.</p>
+            <p class="hint" data-tools="rect ellipse" data-i18n="hint.rectEllipse">Shift: square/circle. Alt: draw from the center.</p>
+            <p class="hint" data-tools="select" data-i18n="hint.select">Drag to select. Shift: square. Alt: from the center. Drag inside the selection to move it. Ctrl+C / Ctrl+V / Del, arrows to nudge.</p>
+            <p class="hint" data-tools="ellipseSelect" data-i18n="hint.ellipseSelect">Drag to select an ellipse. Shift: circle. Alt: from the center.</p>
+            <p class="hint" data-tools="move" data-i18n="hint.move">Drag the selection (or the whole image) as floating content. Enter applies it, Esc cancels.</p>
+            <p class="hint" data-tools="hand" data-i18n="hint.hand">Drag to pan the canvas. You can also hold Space and drag, or use the middle mouse button.</p>
+            <p class="hint" data-tools="eyedropper" data-i18n="hint.eyedropper">Click to pick the primary color. Right-click for the secondary.</p>
+            <p class="hint" data-tools="wand" data-i18n="hint.wand">Click to select the contiguous area of the exact same color. Drawing tools only affect pixels inside the selection.</p>
+          </div>
+          <div class="row wrap">
+            <button id="selAll" data-i18n="selection.all" data-i18n-title="selection.allTitle" title="Select all (Ctrl+A)">All</button>
+            <button id="selNone" data-i18n="selection.none" data-i18n-title="selection.noneTitle" title="Deselect (Ctrl+D)">Deselect</button>
+            <button id="selCopy" data-i18n="selection.copy" data-i18n-title="selection.copyTitle" title="Copy (Ctrl+C)">Copy</button>
+            <button id="selCut" data-i18n="selection.cut" data-i18n-title="selection.cutTitle" title="Cut (Ctrl+X)">Cut</button>
+            <button id="selPaste" data-i18n="selection.paste" data-i18n-title="selection.pasteTitle" title="Paste (Ctrl+V)">Paste</button>
+            <button id="selDelete" data-i18n="selection.delete" data-i18n-title="selection.deleteTitle" title="Delete selection (Del)">Delete</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header><h2 data-i18n="panel.palette">Palette</h2></header>
+          <div id="palette" class="palette"></div>
+          <div class="row">
+            <button id="addSwatch" data-i18n="palette.add">+ Add color</button>
+          </div>
+          <div class="label" data-i18n="palette.recent">Recent</div>
+          <div id="recentPalette" class="palette small"></div>
+        </section>
+
+        <section class="panel">
+          <header><h2 data-i18n="panel.image">Image</h2><span id="imageSize" class="counter">&#8212;</span></header>
+          <div class="grid2">
+            <label><span data-i18n="image.width">Width</span><input id="resizeW" type="number" min="1" max="4096"></label>
+            <label><span data-i18n="image.height">Height</span><input id="resizeH" type="number" min="1" max="4096"></label>
+          </div>
+          <div class="row wrap">
+            <button id="resizeApply" data-i18n="image.resize">Resize</button>
+            <button id="flipH" data-i18n="image.flipH" data-i18n-title="image.flipHTitle" title="Flip horizontally">&#8596; Flip</button>
+            <button id="flipV" data-i18n="image.flipV" data-i18n-title="image.flipVTitle" title="Flip vertically">&#8597; Flip</button>
+            <button id="clearBtn" data-i18n="image.clear">Clear</button>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <footer id="statusbar">
+      <span id="statusCoords" class="mono">&#8212;</span>
+      <span id="statusTool"></span>
+      <span class="spacer"></span>
+      <span id="statusInfo"></span>
+      <span id="statusZoom" class="mono">100%</span>
+    </footer>
+  </div>
+  <script nonce="__NONCE__" src="__SCRIPT_URI__"></script>
+</body>
+</html>
