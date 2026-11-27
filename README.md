@@ -8,7 +8,7 @@ A complete pixel art editor inside VS Code, with drawing and selection tools, un
 
 - Edit PNG images inside VS Code without leaving the editor.
 - Tools: pencil, eraser, eyedropper, fill, line, rectangle, ellipse, magic wand, rectangular selection, elliptical selection, move, and hand.
-- Photoshop-style modifiers: Shift for straight lines and proportions, Alt to draw from the center.
+- Photoshop-style modifiers: Shift constrains lines and shapes and adds to selections; Alt draws from the center and subtracts from selections.
 - The magic wand selects the contiguous area of the exact color you click.
 - With an active selection, drawing, erasing, and fill tools only affect the selected pixels.
 - Per-tool properties: brush size, brush shape (square or circle), opacity, shape fill, and fill tolerance.
@@ -68,6 +68,8 @@ Change the value to `pixelArt.editor`, or remove the entry to let the extension'
 - **Elliptical Selection** (`Q`) creates circular or elliptical selections; they are stored as a real mask.
 - The selection is drawn as marching ants around the actual mask, not a rectangle.
 - While a selection is active, the pencil, eraser, line, rectangle, ellipse, and fill tools only affect pixels inside it. The rest of the image stays untouched.
+- Hold `Shift` while selecting to add to the current selection, or `Alt` to subtract from it. This works with rectangular selection, elliptical selection, and the magic wand.
+- Use the **Move** tool (`V`) to drag the selected pixels as floating content. `Enter` applies the move and `Esc` cancels it.
 - You can move, copy, cut, paste, or delete the selection, then keep drawing inside it.
 - To clear the selection, use **Deselect** or `Ctrl+D`.
 
@@ -79,12 +81,10 @@ Change the value to `pixelArt.editor`, or remove the entry to let the extension'
 | `Shift` + line | Snaps the line to horizontal, vertical, or a 45° diagonal. |
 | `Shift` + rectangle or ellipse | Proportional square or circle. |
 | `Alt` + line, rectangle, or ellipse | Draws from the center. |
-| `Shift` + rectangular selection | Square selection. |
-| `Alt` + rectangular selection | Selection from the center. |
-| `Shift` + elliptical selection | Circular selection. |
-| `Alt` + elliptical selection | Elliptical selection from the center. |
+| `Shift` + selection tool or magic wand | Adds to the current selection. |
+| `Alt` + selection tool or magic wand | Subtracts from the current selection. |
 
-`Shift` and `Alt` can be combined: for example, `Shift+Alt` with the rectangle draws a centered square.
+`Shift` and `Alt` can be combined for drawing: for example, `Shift+Alt` with the rectangle draws a centered square. With selection tools, `Alt` takes precedence when both are held.
 
 ### Languages
 

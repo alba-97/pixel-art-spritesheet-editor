@@ -35,6 +35,7 @@ type PaintTool = 'pencil' | 'eraser' | 'line' | 'rect' | 'ellipse';
 type BrushShape = 'square' | 'circle';
 type ColorButton = 'primary' | 'secondary';
 type SelectionKind = 'rect' | 'mask';
+type SelectionMode = 'replace' | 'add' | 'subtract';
 
 interface SelectionState {
   kind: SelectionKind;
@@ -455,10 +456,10 @@ export class PixelEditor {
 
   private selecting = false;
   private selectShape: 'rect' | 'ellipse' = 'rect';
+  private selectMode: SelectionMode = 'replace';
+  private selectBase: SelectionState | null = null;
   private selectAnchor: Point = { x: 0, y: 0 };
-  private selectLastPoint: Point = { x: 0, y: 0 };
   private selectPreview: Rect | null = null;
-  private selectMoved = false;
 
   private dragFloat = false;
   private floatDragOrigin: Point = { x: 0, y: 0 };
@@ -991,6 +992,8 @@ export class PixelEditor {
     this.dragBase = null;
     this.strokeActive = false;
     this.selecting = false;
+    this.selectBase = null;
+    this.selectPreview = null;
     this.dragFloat = false;
     this.playing = false;
     this.frameIndex = 0;
@@ -1156,7 +1159,9 @@ export class PixelEditor {
     const parts: string[] = [];
     const bounds = this.floating
       ? { x: this.floating.x, y: this.floating.y, w: this.floating.w, h: this.floating.h }
-      : this.selection?.bounds ?? (this.selecting ? this.selectPreview : null);
+      : this.selecting
+        ? this.selectPreview
+        : this.selection?.bounds ?? null;
     if (bounds) {
       const selection = this.t('status.selection', { w: bounds.w, h: bounds.h });
       parts.push(this.floating ? this.t('status.floating', { label: selection }) : selection);
@@ -1210,6 +1215,16 @@ export class PixelEditor {
     return point.x >= 0 && point.y >= 0 && point.x < this.width && point.y < this.height;
   }
 
+  private selectionMode(event: PointerEvent): SelectionMode {
+    if (event.altKey) {
+      return 'subtract';
+    }
+    if (event.shiftKey) {
+      return 'add';
+    }
+    return 'replace';
+  }
+
   private onPointerDown(event: PointerEvent): void {
     if (!this.buffer) {
       return;
@@ -1252,20 +1267,10 @@ export class PixelEditor {
     }
 
     if (tool === 'select' || tool === 'ellipseSelect') {
-      const shape = tool === 'ellipseSelect' ? 'ellipse' : 'rect';
       if (this.floating) {
-        if (this.floatingContains(point)) {
-          this.startFloatDrag(point);
-        } else {
-          this.commitFloat();
-          this.startSelection(point, shape);
-        }
-      } else if (this.selectionContains(point)) {
-        this.beginFloat();
-        this.startFloatDrag(point);
-      } else {
-        this.startSelection(point, shape);
+        this.commitFloat();
       }
+      this.startSelection(point, tool === 'ellipseSelect' ? 'ellipse' : 'rect', this.selectionMode(event));
       return;
     }
 
@@ -1288,7 +1293,7 @@ export class PixelEditor {
       if (this.floating) {
         this.commitFloat();
       }
-      this.selectWand(point);
+      this.selectWand(point, this.selectionMode(event));
       return;
     }
 
@@ -1371,17 +1376,8 @@ export class PixelEditor {
 
     if (this.selecting) {
       const point = this.clampedPoint(event.clientX, event.clientY);
-      this.selectLastPoint = point;
-      const rect = this.constrainedRect(this.selectAnchor, point, event.shiftKey, event.altKey);
-      const clamped = this.clampSelection(rect);
-      if (this.selectShape === 'ellipse') {
-        this.selectPreview = clamped;
-        this.selection = null;
-      } else {
-        this.selectPreview = null;
-        this.selection = clamped ? { kind: 'rect', bounds: clamped, mask: null } : null;
-      }
-      this.selectMoved = clamped !== null && (clamped.w > 1 || clamped.h > 1);
+      const clamped = this.clampSelection(this.rectFromPoints(this.selectAnchor, point));
+      this.selectPreview = clamped;
       this.updateStatusInfo();
       this.needsRender = true;
       return;
@@ -1434,21 +1430,13 @@ export class PixelEditor {
       this.strokeChanged = false;
     }
     if (this.selecting) {
-      this.selectLastPoint = finalPoint;
-      const rect = this.constrainedRect(this.selectAnchor, finalPoint, event.shiftKey, event.altKey);
-      const clamped = this.clampSelection(rect);
+      const clamped = this.clampSelection(this.rectFromPoints(this.selectAnchor, finalPoint));
       const moved = clamped !== null && (clamped.w > 1 || clamped.h > 1);
-      if (moved && clamped) {
-        this.selection =
-          this.selectShape === 'ellipse'
-            ? this.buildEllipseSelection(clamped)
-            : { kind: 'rect', bounds: clamped, mask: null };
-      } else {
-        this.selection = null;
-      }
+      const addition = moved && clamped ? this.selectionFromShape(clamped, this.selectShape) : null;
+      this.selection = this.combineSelection(this.selectBase, addition, this.selectMode);
       this.selecting = false;
       this.selectPreview = null;
-      this.selectMoved = moved;
+      this.selectBase = null;
       this.updateSelectionUi();
       this.updateStatusInfo();
       this.needsRender = true;
@@ -1532,6 +1520,7 @@ export class PixelEditor {
         this.cancelFloat();
       }
       this.selecting = false;
+      this.selectBase = null;
       this.selectPreview = null;
       this.selection = null;
       this.updateSelectionUi();
@@ -1992,21 +1981,13 @@ export class PixelEditor {
     this.showToast(this.t('toast.picked', { hex }));
   }
 
-  private startSelection(point: Point, shape: 'rect' | 'ellipse' = 'rect'): void {
+  private startSelection(point: Point, shape: 'rect' | 'ellipse' = 'rect', mode: SelectionMode = 'replace'): void {
     this.selecting = true;
     this.selectShape = shape;
+    this.selectMode = mode;
+    this.selectBase = this.selection ? this.cloneSelection(this.selection) : null;
     this.selectAnchor = point;
-    this.selectLastPoint = point;
-    this.selectMoved = false;
-    this.selectPreview = shape === 'ellipse' ? { x: point.x, y: point.y, w: 1, h: 1 } : null;
-    this.selection =
-      shape === 'rect'
-        ? {
-            kind: 'rect',
-            bounds: { x: point.x, y: point.y, w: 1, h: 1 },
-            mask: null
-          }
-        : null;
+    this.selectPreview = { x: point.x, y: point.y, w: 1, h: 1 };
     this.updateStatusInfo();
     this.needsRender = true;
   }
@@ -2140,28 +2121,66 @@ export class PixelEditor {
     };
   }
 
-  private selectionContains(point: Point): boolean {
-    const selection = this.selection;
-    if (!selection || !this.pointInRect(point, selection.bounds)) {
+  private selectionFromShape(rect: Rect, shape: 'rect' | 'ellipse'): SelectionState | null {
+    return shape === 'ellipse' ? this.buildEllipseSelection(rect) : this.selectionFromRect(rect);
+  }
+
+  private selectionHasPoint(selection: SelectionState, x: number, y: number): boolean {
+    if (!this.pointInRect({ x, y }, selection.bounds)) {
       return false;
     }
     if (selection.kind === 'rect') {
       return true;
     }
-    return selection.mask !== null && selection.mask[point.y * this.width + point.x] === 1;
+    return selection.mask !== null && selection.mask[y * this.width + x] === 1;
   }
 
-  private floatingContains(point: Point): boolean {
-    const floating = this.floating;
-    if (!floating) {
-      return false;
+  private combineSelection(
+    base: SelectionState | null,
+    addition: SelectionState | null,
+    mode: SelectionMode
+  ): SelectionState | null {
+    if (mode === 'replace') {
+      return addition ? this.cloneSelection(addition) : null;
     }
-    const localX = point.x - floating.x;
-    const localY = point.y - floating.y;
-    if (localX < 0 || localY < 0 || localX >= floating.w || localY >= floating.h) {
-      return false;
+    if (!base) {
+      return mode === 'add' && addition ? this.cloneSelection(addition) : null;
     }
-    return floating.mask === null || floating.mask[localY * floating.w + localX] === 1;
+    if (!addition) {
+      return this.cloneSelection(base);
+    }
+    const x0 = Math.max(0, Math.min(base.bounds.x, addition.bounds.x));
+    const y0 = Math.max(0, Math.min(base.bounds.y, addition.bounds.y));
+    const x1 = Math.min(this.width, Math.max(base.bounds.x + base.bounds.w, addition.bounds.x + addition.bounds.w));
+    const y1 = Math.min(this.height, Math.max(base.bounds.y + base.bounds.h, addition.bounds.y + addition.bounds.h));
+    const mask = new Uint8Array(this.width * this.height);
+    let minX = this.width;
+    let minY = this.height;
+    let maxX = -1;
+    let maxY = -1;
+    for (let y = y0; y < y1; y += 1) {
+      for (let x = x0; x < x1; x += 1) {
+        const inBase = this.selectionHasPoint(base, x, y);
+        const inAddition = this.selectionHasPoint(addition, x, y);
+        const keep = mode === 'add' ? inBase || inAddition : inBase && !inAddition;
+        if (!keep) {
+          continue;
+        }
+        mask[y * this.width + x] = 1;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+    if (maxX < minX || maxY < minY) {
+      return null;
+    }
+    return {
+      kind: 'mask',
+      bounds: { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 },
+      mask
+    };
   }
 
   private isPaintAllowed(x: number, y: number): boolean {
@@ -2210,7 +2229,7 @@ export class PixelEditor {
     this.needsRender = true;
   }
 
-  private selectWand(point: Point): void {
+  private selectWand(point: Point, mode: SelectionMode = 'replace'): void {
     if (!this.buffer) {
       return;
     }
@@ -2257,15 +2276,15 @@ export class PixelEditor {
       if (y < this.height - 1) stack.push(index + this.width);
     }
 
-    if (maxX < minX) {
-      this.selection = null;
-    } else {
-      this.selection = {
-        kind: 'mask',
-        bounds: { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 },
-        mask
-      };
-    }
+    const addition: SelectionState | null =
+      maxX < minX
+        ? null
+        : {
+            kind: 'mask',
+            bounds: { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 },
+            mask
+          };
+    this.selection = this.combineSelection(this.selection, addition, mode);
     this.updateSelectionUi();
     this.updateStatusInfo();
     this.needsRender = true;
@@ -2760,6 +2779,7 @@ export class PixelEditor {
       this.strokeChanged = false;
     }
     this.selecting = false;
+    this.selectBase = null;
     this.selectPreview = null;
     this.dragFloat = false;
     this.panning = false;
@@ -3305,8 +3325,17 @@ export class PixelEditor {
   }
 
   private drawSelection(ctx: CanvasRenderingContext2D, originX: number, originY: number): void {
-    if (this.selecting && this.selectShape === 'ellipse' && this.selectPreview) {
-      this.drawEllipsePreview(ctx, originX, originY, this.selectPreview);
+    if (this.selecting) {
+      if (this.selectMode !== 'replace' && this.selectBase) {
+        this.drawSelectionState(ctx, originX, originY, this.selectBase);
+      }
+      if (this.selectPreview) {
+        if (this.selectShape === 'ellipse') {
+          this.drawEllipsePreview(ctx, originX, originY, this.selectPreview);
+        } else {
+          this.drawRectSelection(ctx, originX, originY, this.selectPreview);
+        }
+      }
       return;
     }
     if (this.floating) {
@@ -3332,23 +3361,31 @@ export class PixelEditor {
       }
       return;
     }
-    if (!this.selection) {
-      return;
+    if (this.selection) {
+      this.drawSelectionState(ctx, originX, originY, this.selection);
     }
-    if (this.selection.kind === 'rect' || !this.selection.mask) {
-      this.drawRectSelection(ctx, originX, originY, this.selection.bounds);
+  }
+
+  private drawSelectionState(
+    ctx: CanvasRenderingContext2D,
+    originX: number,
+    originY: number,
+    selection: SelectionState
+  ): void {
+    if (selection.kind === 'rect' || !selection.mask) {
+      this.drawRectSelection(ctx, originX, originY, selection.bounds);
       return;
     }
     this.drawMaskSelection(
       ctx,
       originX,
       originY,
-      this.selection.mask,
+      selection.mask,
       this.width,
       this.height,
       0,
       0,
-      this.selection.bounds
+      selection.bounds
     );
   }
 

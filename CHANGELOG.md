@@ -7,6 +7,8 @@
 - Added GitHub Actions Trusted Publishing workflow, so the Marketplace release does not need an Azure DevOps PAT.
 - The canvas now takes keyboard focus when clicked, so editor shortcuts work after drawing.
 - Added VS Code keybindings for copy, cut, paste, select all, and deselect, preserving native text-field editing.
+- Shift now adds to the selection and Alt subtracts from it, including the magic wand.
+- Selection tools no longer move the selected pixels; use the Move tool (V) to drag them.
 - The development workspace opens PNG files with the pixel editor.
 
 ## 0.5.1
