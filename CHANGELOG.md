@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.4
+
+- The Marketplace package now uses a dedicated README without the development and project-structure sections.
+
 ## 0.5.3
 
 - Removed the internal Marketplace publishing notes from the public README.
