@@ -160,26 +160,6 @@ On macOS, use `Cmd` instead of `Ctrl`.
 - If you undo back to the saved state, VS Code may still show the tab as modified. Save once to clear it; the file contents do not change.
 - Spritesheet mode and zoom are not stored inside the PNG; UI settings are kept per panel.
 
-## Publishing to the Marketplace
-
-Publishing to the Visual Studio Marketplace is free. This project uses **Trusted Publishing** with GitHub Actions, so no Azure DevOps account or Personal Access Token is required.
-
-The publisher is `basilio` (set in `package.json`) and the workflow is `.github/workflows/publish.yml`.
-
-1. Open the [publisher management page](https://marketplace.visualstudio.com/manage), select the `basilio` publisher, and open **Trusted Publishing**.
-2. Create a policy with these values:
-   - **Repository owner:** `alba-97`
-   - **Repository:** `pixel-art-spritesheet-editor`
-   - **Workflow:** `publish.yml`
-   - **Environment:** leave empty
-3. In GitHub, open **Actions → Publish Extension → Run workflow** on the `main` branch.
-
-The workflow builds and publishes the extension using GitHub OIDC. The first run publishes the current version; for later releases, bump the version in `package.json`, commit and push, then run the workflow again.
-
-The published ID will be `basilio.pixel-art-spritesheet-editor` and the page will be:
-
-`https://marketplace.visualstudio.com/items?itemName=basilio.pixel-art-spritesheet-editor`
-
 ## Development
 
 ```sh
