@@ -217,8 +217,8 @@
     "devbuild": "node esbuild.mjs",
     "typecheck": "tsc --noEmit",
     "harness": "node dev/build-harness.mjs",
-    "package": "npm run build && vsce package --no-dependencies",
-    "publish": "npm run build && vsce publish --no-dependencies"
+    "package": "npm run build && vsce package --no-dependencies --readme-path README.marketplace.md",
+    "publish": "npm run build && vsce publish --no-dependencies --readme-path README.marketplace.md"
   },
   "devDependencies": {
     "@types/node": "^20.17.10",

@@ -11,3 +11,5 @@ package-lock.json
 *.vsix
 *.map
 .gitignore
+README.md
+README.marketplace.md
