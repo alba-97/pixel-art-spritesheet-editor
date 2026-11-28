@@ -80,6 +80,31 @@ interface ClipboardImage {
   mask: Uint8Array | null;
 }
 
+interface Layer {
+  id: string;
+  name: string;
+  image: ImageData;
+  visible: boolean;
+  opacity: number;
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+}
+
+interface LayerSnapshot {
+  id: string;
+  name: string;
+  image: ImageData;
+  visible: boolean;
+  opacity: number;
+}
+
+interface HistorySnapshot {
+  width: number;
+  height: number;
+  activeLayerId: string;
+  layers: LayerSnapshot[];
+}
+
 interface ToolDefinition {
   id: ToolId;
   nameKey: MessageKey;
@@ -431,17 +456,32 @@ export class PixelEditor {
   private readonly selectCutButton = $<HTMLButtonElement>('selCut');
   private readonly selectPasteButton = $<HTMLButtonElement>('selPaste');
   private readonly selectDeleteButton = $<HTMLButtonElement>('selDelete');
+  private readonly layerList = $('layerList');
+  private readonly layerCount = $('layerCount');
+  private readonly layerAddButton = $<HTMLButtonElement>('layerAdd');
+  private readonly layerDuplicateButton = $<HTMLButtonElement>('layerDuplicate');
+  private readonly layerDeleteButton = $<HTMLButtonElement>('layerDelete');
+  private readonly layerUpButton = $<HTMLButtonElement>('layerUp');
+  private readonly layerDownButton = $<HTMLButtonElement>('layerDown');
+  private readonly layerMergeButton = $<HTMLButtonElement>('layerMerge');
+  private readonly layerOpacityInput = input('layerOpacity');
+  private readonly layerOpacityValue = $('layerOpacityVal');
 
   private docCanvas: HTMLCanvasElement | null = null;
   private docCtx: CanvasRenderingContext2D | null = null;
   private buffer: ImageData | null = null;
   private width = 0;
   private height = 0;
+  private layers: Layer[] = [];
+  private activeLayerId = '';
+  private nextLayerId = 1;
+  private nextLayerNumber = 1;
+  private readonly layerThumbnails = new Map<string, HTMLCanvasElement>();
 
   private strokeMask = new Uint32Array(0);
   private strokeVersion = 0;
 
-  private history: ImageData[] = [];
+  private history: HistorySnapshot[] = [];
   private historyIndex = -1;
   private savedIndex = 0;
   private maxHistory = MAX_HISTORY;
@@ -451,6 +491,8 @@ export class PixelEditor {
   private floating: FloatingSelection | null = null;
   private preFloat: ImageData | null = null;
   private preFloatSelection: SelectionState | null = null;
+  private pasteLayerId: string | null = null;
+  private prePasteLayerId = '';
   private clipboard: ClipboardImage | null = null;
   private strokeChanged = false;
 
@@ -623,6 +665,14 @@ export class PixelEditor {
     this.undoButton.addEventListener('click', () => this.undo());
     this.redoButton.addEventListener('click', () => this.redo());
     this.saveButton.addEventListener('click', () => this.requestSave());
+    this.layerAddButton.addEventListener('click', () => this.addLayer());
+    this.layerDuplicateButton.addEventListener('click', () => this.duplicateLayer());
+    this.layerDeleteButton.addEventListener('click', () => this.deleteLayer());
+    this.layerUpButton.addEventListener('click', () => this.moveLayer(1));
+    this.layerDownButton.addEventListener('click', () => this.moveLayer(-1));
+    this.layerMergeButton.addEventListener('click', () => this.mergeLayerDown());
+    this.layerOpacityInput.addEventListener('input', () => this.setLayerOpacity(Number(this.layerOpacityInput.value), false));
+    this.layerOpacityInput.addEventListener('change', () => this.setLayerOpacity(Number(this.layerOpacityInput.value), true));
     $('zoomOut').addEventListener('click', () => this.stepZoom(-1));
     $('zoomIn').addEventListener('click', () => this.stepZoom(1));
     this.zoomResetButton.addEventListener('click', () => this.resetZoom());
@@ -764,6 +814,7 @@ export class PixelEditor {
     this.updateLanguageUi();
     this.updateToolButtons();
     this.renderPalette();
+    this.renderLayerPanel();
     if (this.buffer) {
       this.updateSheetUi();
     } else {
@@ -981,14 +1032,16 @@ export class PixelEditor {
     this.docCtx = context2d(this.docCanvas);
     this.docCtx.imageSmoothingEnabled = false;
     this.docCtx.drawImage(image, 0, 0);
-    this.buffer = this.docCtx.getImageData(0, 0, this.width, this.height);
+    this.setupLayers(this.docCtx.getImageData(0, 0, this.width, this.height));
+    this.updateHistoryBudget();
     this.strokeMask = new Uint32Array(this.width * this.height);
     this.strokeVersion = 0;
-    this.maxHistory = clamp(Math.floor(80000000 / (this.width * this.height * 4)), 2, MAX_HISTORY);
     this.selection = null;
     this.floating = null;
     this.preFloat = null;
     this.preFloatSelection = null;
+    this.pasteLayerId = null;
+    this.prePasteLayerId = '';
     this.dragBase = null;
     this.strokeActive = false;
     this.selecting = false;
@@ -1275,6 +1328,7 @@ export class PixelEditor {
     }
 
     if (tool === 'move') {
+      this.ensureActiveLayerVisible();
       if (!this.floating) {
         if (!this.selection) {
           this.selection = {
@@ -1300,6 +1354,7 @@ export class PixelEditor {
     if (this.floating) {
       this.commitFloat();
     }
+    this.ensureActiveLayerVisible();
 
     const rgb = hexToRgb(color);
     const alpha = this.prefs.opacity / 100;
@@ -2470,6 +2525,8 @@ export class PixelEditor {
     this.floating = null;
     this.preFloat = null;
     this.preFloatSelection = null;
+    this.pasteLayerId = null;
+    this.prePasteLayerId = '';
     this.syncDoc();
     this.pushHistory();
     this.updateSelectionUi();
@@ -2483,6 +2540,23 @@ export class PixelEditor {
     }
     if (this.buffer) {
       this.buffer.data.set(this.preFloat.data);
+    }
+    if (this.pasteLayerId) {
+      const index = this.layers.findIndex((layer) => layer.id === this.pasteLayerId);
+      if (index >= 0) {
+        this.layers.splice(index, 1);
+      }
+      const previous =
+        this.layers.find((layer) => layer.id === this.prePasteLayerId) ??
+        this.layers[Math.min(index, this.layers.length - 1)] ??
+        this.layers[0];
+      if (previous) {
+        this.activeLayerId = previous.id;
+        this.buffer = previous.image;
+      }
+      this.pasteLayerId = null;
+      this.prePasteLayerId = '';
+      this.renderLayerPanel();
     }
     this.selection = this.preFloatSelection ? this.cloneSelection(this.preFloatSelection) : null;
     this.floating = null;
@@ -2588,6 +2662,15 @@ export class PixelEditor {
       this.commitFloat();
     }
     const source = this.clipboard;
+    const previousLayerId = this.activeLayerId;
+    const layer = this.createLayer(undefined, this.t('layers.pastedName'));
+    const index = this.activeLayerIndex();
+    this.layers.splice(index >= 0 ? index + 1 : this.layers.length, 0, layer);
+    this.activeLayerId = layer.id;
+    this.buffer = layer.image;
+    this.pasteLayerId = layer.id;
+    this.prePasteLayerId = previousLayerId;
+    this.renderLayerPanel();
     this.preFloat = this.cloneBuffer();
     this.preFloatSelection = this.selection ? this.cloneSelection(this.selection) : null;
     const canvas = createCanvas(source.w, source.h);
@@ -2648,18 +2731,379 @@ export class PixelEditor {
     return cloneImageData(this.buffer);
   }
 
+  private createLayer(image?: ImageData, name?: string): Layer {
+    const layerImage = image ? cloneImageData(image) : new ImageData(this.width, this.height);
+    const canvas = createCanvas(this.width, this.height);
+    const ctx = context2d(canvas, false);
+    ctx.putImageData(layerImage, 0, 0);
+    return {
+      id: `layer-${this.nextLayerId++}`,
+      name: name ?? this.t('layers.defaultName', { n: this.nextLayerNumber++ }),
+      image: layerImage,
+      visible: true,
+      opacity: 100,
+      canvas,
+      ctx
+    };
+  }
+
+  private activeLayer(): Layer | null {
+    return this.layers.find((layer) => layer.id === this.activeLayerId) ?? null;
+  }
+
+  private activeLayerIndex(): number {
+    return this.layers.findIndex((layer) => layer.id === this.activeLayerId);
+  }
+
+  private setupLayers(image: ImageData): void {
+    this.layers = [];
+    this.layerThumbnails.clear();
+    this.nextLayerId = 1;
+    this.nextLayerNumber = 1;
+    this.activeLayerId = '';
+    const layer = this.createLayer(image);
+    this.layers.push(layer);
+    this.activeLayerId = layer.id;
+    this.buffer = layer.image;
+    this.renderLayerPanel();
+  }
+
+  private syncLayerCanvas(layer: Layer): void {
+    layer.ctx.putImageData(layer.image, 0, 0);
+  }
+
+  private drawLayerThumbnail(layer: Layer, canvas: HTMLCanvasElement): void {
+    const ctx = context2d(canvas, false);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const scale = Math.min(canvas.width / Math.max(1, this.width), canvas.height / Math.max(1, this.height));
+    const width = Math.max(1, Math.round(this.width * scale));
+    const height = Math.max(1, Math.round(this.height * scale));
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(layer.canvas, 0, 0, width, height);
+  }
+
+  private updateActiveLayerThumbnail(): void {
+    const layer = this.activeLayer();
+    if (!layer) {
+      return;
+    }
+    const canvas = this.layerThumbnails.get(layer.id);
+    if (canvas) {
+      this.drawLayerThumbnail(layer, canvas);
+    }
+  }
+
+  private renderLayerPanel(): void {
+    this.layerList.replaceChildren();
+    this.layerThumbnails.clear();
+    for (const layer of this.layers) {
+      this.syncLayerCanvas(layer);
+    }
+    for (let index = this.layers.length - 1; index >= 0; index -= 1) {
+      const layer = this.layers[index];
+      const row = document.createElement('div');
+      row.className = 'layer-row';
+      row.classList.toggle('active', layer.id === this.activeLayerId);
+      row.dataset.layerId = layer.id;
+
+      const visibility = document.createElement('button');
+      visibility.type = 'button';
+      visibility.className = 'layer-eye';
+      visibility.title = this.t('layers.visibility');
+      visibility.setAttribute('aria-pressed', String(layer.visible));
+      visibility.innerHTML = layer.visible
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10.9 10.9 0 0 1 12 6c6.4 0 10 6 10 6a16 16 0 0 1-3.2 3.7"/><path d="M6.4 7.4A16.8 16.8 0 0 0 2 12s3.6 6 10 6a10.8 10.8 0 0 0 4.6-1"/></svg>';
+      visibility.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this.toggleLayerVisibility(layer.id);
+      });
+      row.appendChild(visibility);
+
+      const thumbnail = createCanvas(36, 36);
+      thumbnail.className = 'layer-thumb';
+      this.layerThumbnails.set(layer.id, thumbnail);
+      this.drawLayerThumbnail(layer, thumbnail);
+      row.appendChild(thumbnail);
+
+      const name = document.createElement('input');
+      name.type = 'text';
+      name.className = 'layer-name';
+      name.value = layer.name;
+      name.spellcheck = false;
+      name.setAttribute('aria-label', this.t('layers.rename'));
+      name.addEventListener('focus', () => this.setActiveLayer(layer.id));
+      name.addEventListener('input', () => {
+        layer.name = name.value;
+      });
+      name.addEventListener('change', () => {
+        layer.name = name.value.trim() || this.t('layers.defaultName', { n: index + 1 });
+        name.value = layer.name;
+        this.pushHistory();
+      });
+      name.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          name.blur();
+        }
+      });
+      row.appendChild(name);
+
+      row.addEventListener('pointerdown', (event) => {
+        const target = event.target;
+        if (target instanceof HTMLElement && target.closest('button, input')) {
+          return;
+        }
+        this.setActiveLayer(layer.id);
+        this.view.focus();
+      });
+      this.layerList.appendChild(row);
+    }
+    this.updateLayerUi();
+  }
+
+  private refreshLayerActiveState(): void {
+    const rows = this.layerList.querySelectorAll<HTMLElement>('.layer-row');
+    for (const row of rows) {
+      row.classList.toggle('active', row.dataset.layerId === this.activeLayerId);
+    }
+    this.updateLayerUi();
+  }
+
+  private updateLayerUi(): void {
+    const layer = this.activeLayer();
+    const index = this.activeLayerIndex();
+    this.layerCount.textContent = String(this.layers.length);
+    this.layerAddButton.disabled = this.buffer === null;
+    this.layerDuplicateButton.disabled = !layer;
+    this.layerDeleteButton.disabled = !layer || this.layers.length <= 1;
+    this.layerUpButton.disabled = !layer || index < 0 || index >= this.layers.length - 1;
+    this.layerDownButton.disabled = !layer || index <= 0;
+    this.layerMergeButton.disabled = !layer || index <= 0;
+    this.layerOpacityInput.disabled = !layer;
+    if (layer) {
+      this.layerOpacityInput.value = String(layer.opacity);
+      this.layerOpacityValue.textContent = `${layer.opacity}%`;
+    } else {
+      this.layerOpacityValue.textContent = '—';
+    }
+  }
+
+  private setActiveLayer(id: string): void {
+    const layer = this.layers.find((entry) => entry.id === id);
+    if (!layer || layer.id === this.activeLayerId) {
+      return;
+    }
+    if (this.floating) {
+      this.commitFloat();
+    }
+    this.activeLayerId = layer.id;
+    this.buffer = layer.image;
+    this.refreshLayerActiveState();
+    this.syncDoc();
+    this.updateStatusInfo();
+  }
+
+  private ensureActiveLayerVisible(): void {
+    const layer = this.activeLayer();
+    if (!layer || layer.visible) {
+      return;
+    }
+    layer.visible = true;
+    this.renderLayerPanel();
+    this.syncDoc();
+  }
+
+  private addLayer(): void {
+    if (!this.buffer) {
+      return;
+    }
+    if (this.floating) {
+      this.commitFloat();
+    }
+    const layer = this.createLayer();
+    const index = this.activeLayerIndex();
+    this.layers.splice(index >= 0 ? index + 1 : this.layers.length, 0, layer);
+    this.activeLayerId = layer.id;
+    this.buffer = layer.image;
+    this.renderLayerPanel();
+    this.syncDoc();
+    this.pushHistory();
+    this.updateStatusInfo();
+  }
+
+  private duplicateLayer(): void {
+    const source = this.activeLayer();
+    if (!source) {
+      return;
+    }
+    if (this.floating) {
+      this.commitFloat();
+    }
+    const layer = this.createLayer(source.image, this.t('layers.copyName', { name: source.name }));
+    layer.visible = source.visible;
+    layer.opacity = source.opacity;
+    const index = this.activeLayerIndex();
+    this.layers.splice(index + 1, 0, layer);
+    this.activeLayerId = layer.id;
+    this.buffer = layer.image;
+    this.renderLayerPanel();
+    this.syncDoc();
+    this.pushHistory();
+    this.updateStatusInfo();
+  }
+
+  private deleteLayer(): void {
+    if (this.layers.length <= 1) {
+      return;
+    }
+    const index = this.activeLayerIndex();
+    if (index < 0) {
+      return;
+    }
+    if (this.floating) {
+      this.commitFloat();
+    }
+    this.layers.splice(index, 1);
+    const next = this.layers[Math.min(index, this.layers.length - 1)];
+    this.activeLayerId = next.id;
+    this.buffer = next.image;
+    this.renderLayerPanel();
+    this.syncDoc();
+    this.pushHistory();
+    this.updateStatusInfo();
+  }
+
+  private moveLayer(direction: number): void {
+    const index = this.activeLayerIndex();
+    const next = index + direction;
+    if (index < 0 || next < 0 || next >= this.layers.length) {
+      return;
+    }
+    if (this.floating) {
+      this.commitFloat();
+    }
+    const [layer] = this.layers.splice(index, 1);
+    this.layers.splice(next, 0, layer);
+    this.renderLayerPanel();
+    this.syncDoc();
+    this.pushHistory();
+  }
+
+  private mergeLayerDown(): void {
+    const index = this.activeLayerIndex();
+    if (index <= 0) {
+      return;
+    }
+    if (this.floating) {
+      this.commitFloat();
+    }
+    const lower = this.layers[index - 1];
+    const upper = this.layers[index];
+    this.syncLayerCanvas(lower);
+    this.syncLayerCanvas(upper);
+    const canvas = createCanvas(this.width, this.height);
+    const ctx = context2d(canvas, false);
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = lower.opacity / 100;
+    ctx.drawImage(lower.canvas, 0, 0);
+    ctx.globalAlpha = upper.opacity / 100;
+    ctx.drawImage(upper.canvas, 0, 0);
+    lower.image = ctx.getImageData(0, 0, this.width, this.height);
+    lower.visible = lower.visible || upper.visible;
+    lower.opacity = 100;
+    this.syncLayerCanvas(lower);
+    this.layers.splice(index, 1);
+    this.activeLayerId = lower.id;
+    this.buffer = lower.image;
+    this.renderLayerPanel();
+    this.syncDoc();
+    this.pushHistory();
+    this.updateStatusInfo();
+  }
+
+  private toggleLayerVisibility(id: string): void {
+    const layer = this.layers.find((entry) => entry.id === id);
+    if (!layer) {
+      return;
+    }
+    if (this.floating) {
+      this.commitFloat();
+    }
+    layer.visible = !layer.visible;
+    this.renderLayerPanel();
+    this.syncDoc();
+    this.pushHistory();
+  }
+
+  private setLayerOpacity(value: number, commit: boolean): void {
+    const layer = this.activeLayer();
+    if (!layer) {
+      return;
+    }
+    const opacity = clamp(Math.round(Number.isFinite(value) ? value : layer.opacity), 0, 100);
+    if (layer.opacity === opacity) {
+      return;
+    }
+    layer.opacity = opacity;
+    this.layerOpacityValue.textContent = `${opacity}%`;
+    this.syncDoc();
+    if (commit) {
+      this.pushHistory();
+    }
+  }
+
   private syncDoc(): void {
     if (!this.docCtx || !this.buffer) {
       return;
     }
-    this.docCtx.putImageData(this.buffer, 0, 0);
+    const active = this.activeLayer();
+    if (active) {
+      this.syncLayerCanvas(active);
+    }
+    this.docCtx.clearRect(0, 0, this.width, this.height);
+    for (const layer of this.layers) {
+      if (!layer.visible || layer.opacity <= 0) {
+        continue;
+      }
+      this.docCtx.globalAlpha = layer.opacity / 100;
+      this.docCtx.drawImage(layer.canvas, 0, 0);
+    }
+    this.docCtx.globalAlpha = 1;
+    this.updateActiveLayerThumbnail();
     this.needsRender = true;
     this.previewDirty = true;
     this.updateSheetPreviewLabel();
   }
 
+  private snapshotHistory(): HistorySnapshot {
+    return {
+      width: this.width,
+      height: this.height,
+      activeLayerId: this.activeLayerId,
+      layers: this.layers.map((layer) => ({
+        id: layer.id,
+        name: layer.name,
+        visible: layer.visible,
+        opacity: layer.opacity,
+        image: cloneImageData(layer.image)
+      }))
+    };
+  }
+
+  private updateHistoryBudget(): void {
+    const bytesPerSnapshot = Math.max(1, this.width * this.height * 4) * Math.max(1, this.layers.length);
+    this.maxHistory = clamp(Math.floor(80000000 / bytesPerSnapshot), 2, MAX_HISTORY);
+    if (this.history.length > this.maxHistory) {
+      const remove = this.history.length - this.maxHistory;
+      this.history.splice(0, remove);
+      this.historyIndex = Math.max(0, this.historyIndex - remove);
+      this.savedIndex = this.savedIndex >= remove ? this.savedIndex - remove : -1;
+    }
+  }
+
   private resetHistory(): void {
-    this.history = [this.cloneBuffer()];
+    this.updateHistoryBudget();
+    this.history = [this.snapshotHistory()];
     this.historyIndex = 0;
     this.savedIndex = 0;
     this.lastDirty = false;
@@ -2671,7 +3115,8 @@ export class PixelEditor {
     if (!this.buffer) {
       return;
     }
-    const snapshot = cloneImageData(this.buffer);
+    this.updateHistoryBudget();
+    const snapshot = this.snapshotHistory();
     this.history.length = this.historyIndex + 1;
     this.history.push(snapshot);
     if (this.history.length > this.maxHistory) {
@@ -2715,19 +3160,38 @@ export class PixelEditor {
     if (!snapshot) {
       return;
     }
-    if (!this.buffer || snapshot.width !== this.width || snapshot.height !== this.height) {
-      this.width = snapshot.width;
-      this.height = snapshot.height;
-      this.docCanvas = createCanvas(this.width, this.height);
-      this.docCtx = context2d(this.docCanvas);
-      this.buffer = new ImageData(new Uint8ClampedArray(snapshot.data), this.width, this.height);
-      this.docCtx.putImageData(this.buffer, 0, 0);
+    const sizeChanged = !this.buffer || snapshot.width !== this.width || snapshot.height !== this.height;
+    this.width = snapshot.width;
+    this.height = snapshot.height;
+    this.layers = snapshot.layers.map((entry) => {
+      const image = new ImageData(new Uint8ClampedArray(entry.image.data), this.width, this.height);
+      const canvas = createCanvas(this.width, this.height);
+      const ctx = context2d(canvas, false);
+      ctx.putImageData(image, 0, 0);
+      return {
+        id: entry.id,
+        name: entry.name,
+        image,
+        visible: entry.visible,
+        opacity: entry.opacity,
+        canvas,
+        ctx
+      };
+    });
+    this.activeLayerId = this.layers.some((layer) => layer.id === snapshot.activeLayerId)
+      ? snapshot.activeLayerId
+      : this.layers[this.layers.length - 1]?.id ?? '';
+    this.buffer = this.activeLayer()?.image ?? null;
+    this.docCanvas = createCanvas(this.width, this.height);
+    this.docCtx = context2d(this.docCanvas);
+    this.floating = null;
+    this.preFloat = null;
+    this.preFloatSelection = null;
+    this.pasteLayerId = null;
+    this.prePasteLayerId = '';
+    if (sizeChanged) {
       this.strokeMask = new Uint32Array(this.width * this.height);
-      this.maxHistory = clamp(Math.floor(80000000 / (this.width * this.height * 4)), 2, MAX_HISTORY);
       this.selection = null;
-      this.floating = null;
-      this.preFloat = null;
-      this.preFloatSelection = null;
       this.imageSize.textContent = `${this.width} × ${this.height}`;
       this.resizeW.value = String(this.width);
       this.resizeH.value = String(this.height);
@@ -2741,11 +3205,10 @@ export class PixelEditor {
       this.fitToView();
       this.pendingFit = false;
       this.updateSelectionUi();
-      this.previewDirty = true;
-    } else {
-      this.buffer.data.set(snapshot.data);
-      this.syncDoc();
     }
+    this.updateHistoryBudget();
+    this.renderLayerPanel();
+    this.syncDoc();
     this.updateHistoryUi();
     this.updateDirty();
     this.updateStatusInfo();
@@ -2819,24 +3282,29 @@ export class PixelEditor {
     if (this.floating) {
       this.commitFloat();
     }
-    const source = createCanvas(this.width, this.height);
-    context2d(source).putImageData(this.buffer, 0, 0);
-    const target = createCanvas(nextW, nextH);
-    const targetCtx = context2d(target);
-    targetCtx.imageSmoothingEnabled = false;
-    targetCtx.drawImage(source, 0, 0, nextW, nextH);
+    for (const layer of this.layers) {
+      this.syncLayerCanvas(layer);
+      const target = createCanvas(nextW, nextH);
+      const targetCtx = context2d(target, false);
+      targetCtx.imageSmoothingEnabled = false;
+      targetCtx.drawImage(layer.canvas, 0, 0, nextW, nextH);
+      layer.image = targetCtx.getImageData(0, 0, nextW, nextH);
+      layer.canvas = createCanvas(nextW, nextH);
+      layer.ctx = context2d(layer.canvas, false);
+      layer.ctx.putImageData(layer.image, 0, 0);
+    }
     this.width = nextW;
     this.height = nextH;
     this.docCanvas = createCanvas(nextW, nextH);
     this.docCtx = context2d(this.docCanvas);
-    this.buffer = this.docCtx.getImageData(0, 0, nextW, nextH);
-    this.buffer.data.set(targetCtx.getImageData(0, 0, nextW, nextH).data);
-    this.docCtx.putImageData(this.buffer, 0, 0);
+    this.buffer = this.activeLayer()?.image ?? null;
     this.strokeMask = new Uint32Array(nextW * nextH);
     this.selection = null;
     this.floating = null;
     this.preFloat = null;
     this.preFloatSelection = null;
+    this.pasteLayerId = null;
+    this.prePasteLayerId = '';
     this.imageSize.textContent = `${nextW} × ${nextH}`;
     this.resizeW.value = String(nextW);
     this.resizeH.value = String(nextH);
@@ -2847,7 +3315,9 @@ export class PixelEditor {
     this.prefs.frameStart = 0;
     this.prefs.frameEnd = Math.max(0, this.metrics().frames - 1);
     this.frameIndex = 0;
-    this.maxHistory = clamp(Math.floor(80000000 / (nextW * nextH * 4)), 2, MAX_HISTORY);
+    this.updateHistoryBudget();
+    this.renderLayerPanel();
+    this.syncDoc();
     this.pushHistory();
     this.updateSheetUi();
     this.fitPreview();
@@ -2864,22 +3334,26 @@ export class PixelEditor {
     if (this.floating) {
       this.commitFloat();
     }
-    const source = createCanvas(this.width, this.height);
-    context2d(source).putImageData(this.buffer, 0, 0);
-    const target = createCanvas(this.width, this.height);
-    const ctx = context2d(target);
-    ctx.imageSmoothingEnabled = false;
-    ctx.save();
-    if (horizontal) {
-      ctx.translate(this.width, 0);
-      ctx.scale(-1, 1);
-    } else {
-      ctx.translate(0, this.height);
-      ctx.scale(1, -1);
+    for (const layer of this.layers) {
+      this.syncLayerCanvas(layer);
+      const target = createCanvas(this.width, this.height);
+      const ctx = context2d(target);
+      ctx.imageSmoothingEnabled = false;
+      ctx.save();
+      if (horizontal) {
+        ctx.translate(this.width, 0);
+        ctx.scale(-1, 1);
+      } else {
+        ctx.translate(0, this.height);
+        ctx.scale(1, -1);
+      }
+      ctx.drawImage(layer.canvas, 0, 0);
+      ctx.restore();
+      layer.image = ctx.getImageData(0, 0, this.width, this.height);
+      this.syncLayerCanvas(layer);
     }
-    ctx.drawImage(source, 0, 0);
-    ctx.restore();
-    this.buffer = ctx.getImageData(0, 0, this.width, this.height);
+    this.buffer = this.activeLayer()?.image ?? null;
+    this.renderLayerPanel();
     this.syncDoc();
     this.pushHistory();
     this.updateStatusInfo();
@@ -3226,6 +3700,9 @@ export class PixelEditor {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(this.docCanvas, 0, 0, imageW, imageH);
     if (this.floating) {
+      const active = this.activeLayer();
+      ctx.save();
+      ctx.globalAlpha = active ? active.opacity / 100 : 1;
       ctx.drawImage(
         this.floating.canvas,
         this.floating.x * this.zoom,
@@ -3233,6 +3710,7 @@ export class PixelEditor {
         this.floating.w * this.zoom,
         this.floating.h * this.zoom
       );
+      ctx.restore();
     }
     ctx.restore();
 

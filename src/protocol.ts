@@ -179,7 +179,15 @@ export function isHostMessage(value: unknown): value is HostMessage {
     case 'saveError':
       return typeof value.message === 'string';
     case 'action':
-      return value.action === 'undo' || value.action === 'redo';
+      return (
+        value.action === 'undo' ||
+        value.action === 'redo' ||
+        value.action === 'copy' ||
+        value.action === 'cut' ||
+        value.action === 'paste' ||
+        value.action === 'selectAll' ||
+        value.action === 'deselect'
+      );
     default:
       return false;
   }

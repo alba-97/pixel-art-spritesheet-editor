@@ -14,10 +14,12 @@ A complete pixel art editor inside VS Code, with drawing and selection tools, un
 - Per-tool properties: brush size, brush shape (square or circle), opacity, shape fill, and fill tolerance.
 - Primary and secondary colors. Right-click draws with the secondary color.
 - 16-color palette, custom colors, and recent colors.
-- Selection with copy, cut, paste, delete, and floating-content move.
-- Undo and redo with per-document history.
+- Selection with copy, cut, paste, delete, and floating-content move. Copying and cutting use the active layer, and pasting creates a new layer.
+- Photoshop-style layers with visibility, opacity, rename, duplicate, delete, reorder, and merge down.
+- Layers are for editing only. Saving flattens the visible layers into the PNG, and reopening the image starts again with one layer.
+- Undo and redo with per-document history, including layer changes.
 - Zoom (1x to 64x), panning with Space or the middle mouse button, pixel grid, and transparency background.
-- Resize, flip horizontally and vertically, and clear the canvas.
+- Resize and flip affect every layer. Clear empties the active layer.
 - Spritesheet mode: cell width and height, columns and rows, start and end frame, FPS, and loop playback.
 - Animation preview with a checkerboard, theme background, or solid color.
 - English and Spanish interface, with a top-bar selector and the `pixelArt.language` setting.
@@ -70,8 +72,17 @@ Change the value to `pixelArt.editor`, or remove the entry to let the extension'
 - While a selection is active, the pencil, eraser, line, rectangle, ellipse, and fill tools only affect pixels inside it. The rest of the image stays untouched.
 - Hold `Shift` while selecting to add to the current selection, or `Alt` to subtract from it. This works with rectangular selection, elliptical selection, and the magic wand.
 - Use the **Move** tool (`V`) to drag the selected pixels as floating content. `Enter` applies the move and `Esc` cancels it.
+- `Ctrl+C` and `Ctrl+X` copy or cut the selection from the active layer. `Ctrl+V` creates a new layer with the pasted content, which you can drag and apply with `Enter`.
 - You can move, copy, cut, paste, or delete the selection, then keep drawing inside it.
 - To clear the selection, use **Deselect** or `Ctrl+D`.
+
+### Layers
+
+- The **Layers** panel shows the stack from top to bottom. Click a row to make that layer active; the active layer receives every paint and selection operation.
+- Use the eye button to show or hide a layer, the opacity slider to change the active layer's opacity, and the name field to rename it.
+- The toolbar adds, duplicates, deletes, moves, and merges layers. Deleting the last remaining layer is disabled.
+- Copy and cut always read the active layer. Paste creates a new **Pasted** layer above it.
+- Layers are not stored in the PNG. **Save** writes the visible layers flattened together, and reopening the file gives a single layer again.
 
 ### Modifiers
 

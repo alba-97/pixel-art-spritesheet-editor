@@ -126,6 +126,27 @@
           </div>
         </section>
 
+        <section class="panel" id="layersPanel">
+          <header>
+            <h2 data-i18n="panel.layers">Layers</h2>
+            <span id="layerCount" class="counter">1</span>
+          </header>
+          <div class="layer-toolbar">
+            <button id="layerAdd" class="mini" data-i18n-title="layers.add" title="Add layer">+</button>
+            <button id="layerDuplicate" class="mini" data-i18n-title="layers.duplicate" title="Duplicate layer">⧉</button>
+            <button id="layerDelete" class="mini" data-i18n-title="layers.delete" title="Delete layer">✕</button>
+            <button id="layerUp" class="mini" data-i18n-title="layers.up" title="Move layer up">↑</button>
+            <button id="layerDown" class="mini" data-i18n-title="layers.down" title="Move layer down">↓</button>
+            <button id="layerMerge" class="mini" data-i18n-title="layers.merge" title="Merge down">⤓</button>
+          </div>
+          <div id="layerList" class="layer-list"></div>
+          <label class="slider-field layer-opacity">
+            <span data-i18n="layers.opacity">Opacity</span>
+            <input id="layerOpacity" type="range" min="0" max="100" value="100">
+            <span id="layerOpacityVal" class="mono dim">100%</span>
+          </label>
+        </section>
+
         <section class="panel">
           <header><h2 data-i18n="panel.tool">Tool</h2></header>
           <div class="stack" id="toolOptionsBody">

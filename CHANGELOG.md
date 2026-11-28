@@ -9,6 +9,10 @@
 - Added VS Code keybindings for copy, cut, paste, select all, and deselect, preserving native text-field editing.
 - Shift now adds to the selection and Alt subtracts from it, including the magic wand.
 - Selection tools no longer move the selected pixels; use the Move tool (V) to drag them.
+- Added temporary Photoshop-style layers with visibility, opacity, rename, duplicate, delete, reorder, and merge down.
+- Copy and cut read pixels from the active layer; paste creates a new layer above it.
+- Saving flattens visible layers, and reopening the image starts with one layer.
+- Fixed host copy, cut, paste, select-all, and deselect actions being rejected by the webview protocol.
 - The development workspace opens PNG files with the pixel editor.
 
 ## 0.5.1

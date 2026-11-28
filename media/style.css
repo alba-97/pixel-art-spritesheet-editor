@@ -643,6 +643,116 @@ label.inline input[type="number"] {
   margin-top: 0.15rem;
 }
 
+.layer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+}
+
+.layer-toolbar .mini {
+  min-width: 1.55rem;
+  font-size: 0.82rem;
+}
+
+.layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  max-height: 11rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, var(--input-bg) 70%, transparent);
+  cursor: pointer;
+}
+
+.layer-row:hover {
+  background: var(--btn-hover);
+}
+
+.layer-row.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.layer-eye {
+  flex: 0 0 auto;
+  width: 1.45rem;
+  height: 1.45rem;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fg);
+  opacity: 0.78;
+}
+
+.layer-eye:hover {
+  background: transparent;
+  opacity: 1;
+}
+
+.layer-eye[aria-pressed="false"] {
+  opacity: 0.38;
+}
+
+.layer-eye svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  display: block;
+  margin: auto;
+}
+
+.layer-thumb {
+  flex: 0 0 auto;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.2rem;
+  image-rendering: pixelated;
+  background-color: rgba(128, 128, 128, 0.12);
+  background-image: conic-gradient(
+    rgba(128, 128, 128, 0.28) 25%,
+    transparent 0 50%,
+    rgba(128, 128, 128, 0.28) 0 75%,
+    transparent 0
+  );
+  background-size: 0.5rem 0.5rem;
+}
+
+.layer-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 0.1rem 0.2rem;
+  font-size: 0.68rem;
+  color: var(--fg);
+}
+
+.layer-name:hover {
+  border-color: var(--border);
+}
+
+.layer-name:focus {
+  border-color: var(--accent);
+  background: var(--input-bg);
+  outline: none;
+}
+
+.layer-opacity {
+  justify-content: space-between;
+}
+
 .palette {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(1.3rem, 1fr));
