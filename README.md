@@ -30,7 +30,7 @@ A complete pixel art editor inside VS Code, with drawing and selection tools, un
 ### From a VSIX file
 
 ```sh
-code --install-extension pixel-art-editor-0.5.2.vsix
+code --install-extension pixel-art-spritesheet-editor-0.5.2.vsix
 ```
 
 You can also open the Extensions view, click the three dots, choose **Install from VSIX...**, and select the file.
@@ -154,7 +154,7 @@ On macOS, use `Cmd` instead of `Ctrl`.
 
 - The editor works with PNG files and saves lossless PNGs.
 - Maximum canvas size: 4096 × 4096.
-- One layer per image; there are no layers or onion skin.
+- Layers are temporary and are flattened when the image is saved. There is no onion skin.
 - The clipboard is internal to the editor: copy and paste work within the same image.
 - History is kept in memory while the editor is open.
 - If you undo back to the saved state, VS Code may still show the tab as modified. Save once to clear it; the file contents do not change.
@@ -176,9 +176,9 @@ The publisher is `basilio` (set in `package.json`) and the workflow is `.github/
 
 The workflow builds and publishes the extension using GitHub OIDC. The first run publishes the current version; for later releases, bump the version in `package.json`, commit and push, then run the workflow again.
 
-The published ID will be `basilio.pixel-art-editor` and the page will be:
+The published ID will be `basilio.pixel-art-spritesheet-editor` and the page will be:
 
-`https://marketplace.visualstudio.com/items?itemName=basilio.pixel-art-editor`
+`https://marketplace.visualstudio.com/items?itemName=basilio.pixel-art-spritesheet-editor`
 
 ## Development
 

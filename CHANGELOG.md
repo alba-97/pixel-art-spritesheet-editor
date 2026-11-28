@@ -2,6 +2,7 @@
 
 ## 0.5.2
 
+- Extension ID changed from `basilio.pixel-art-editor` to `basilio.pixel-art-spritesheet-editor`.
 - README screenshot now uses an absolute public URL, so it shows in the extension details and on the Marketplace.
 - Added repository, homepage, and issue tracker metadata.
 - Added GitHub Actions Trusted Publishing workflow, so the Marketplace release does not need an Azure DevOps PAT.
