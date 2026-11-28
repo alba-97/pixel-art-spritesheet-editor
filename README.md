@@ -70,7 +70,8 @@ Change the value to `pixelArt.editor`, or remove the entry to let the extension'
 - **Elliptical Selection** (`Q`) creates circular or elliptical selections; they are stored as a real mask.
 - The selection is drawn as marching ants around the actual mask, not a rectangle.
 - While a selection is active, the pencil, eraser, line, rectangle, ellipse, and fill tools only affect pixels inside it. The rest of the image stays untouched.
-- Hold `Shift` while selecting to add to the current selection, or `Alt` to subtract from it. This works with rectangular selection, elliptical selection, and the magic wand.
+- Hold `Shift` before starting a selection to add to the current selection, or `Alt` to subtract from it. This works with rectangular selection, elliptical selection, and the magic wand.
+- If you press `Shift` or `Alt` after the drag has started, they constrain the new selection instead: `Shift` makes it a square or circle, and `Alt` draws it from the center.
 - Use the **Move** tool (`V`) to drag the selected pixels as floating content. `Enter` applies the move and `Esc` cancels it.
 - `Ctrl+C` and `Ctrl+X` copy or cut the selection from the active layer. `Ctrl+V` creates a new layer with the pasted content, which you can drag and apply with `Enter`.
 - You can move, copy, cut, paste, or delete the selection, then keep drawing inside it.
@@ -92,10 +93,12 @@ Change the value to `pixelArt.editor`, or remove the entry to let the extension'
 | `Shift` + line | Snaps the line to horizontal, vertical, or a 45° diagonal. |
 | `Shift` + rectangle or ellipse | Proportional square or circle. |
 | `Alt` + line, rectangle, or ellipse | Draws from the center. |
-| `Shift` + selection tool or magic wand | Adds to the current selection. |
-| `Alt` + selection tool or magic wand | Subtracts from the current selection. |
+| `Shift` held before starting a selection or magic wand click | Adds to the current selection. |
+| `Alt` held before starting a selection or magic wand click | Subtracts from the current selection. |
+| `Shift` pressed after starting a selection drag | Constrains it to a square or circle. |
+| `Alt` pressed after starting a selection drag | Draws it from the center. |
 
-`Shift` and `Alt` can be combined for drawing: for example, `Shift+Alt` with the rectangle draws a centered square. With selection tools, `Alt` takes precedence when both are held.
+`Shift` and `Alt` can be combined for drawing: for example, `Shift+Alt` with the rectangle draws a centered square. With selection tools, `Alt` takes precedence when both are held before starting the drag.
 
 ### Languages
 

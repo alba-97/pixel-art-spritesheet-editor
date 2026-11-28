@@ -499,6 +499,8 @@ export class PixelEditor {
   private selecting = false;
   private selectShape: 'rect' | 'ellipse' = 'rect';
   private selectMode: SelectionMode = 'replace';
+  private selectInitialShift = false;
+  private selectInitialAlt = false;
   private selectBase: SelectionState | null = null;
   private selectAnchor: Point = { x: 0, y: 0 };
   private selectPreview: Rect | null = null;
@@ -1323,7 +1325,13 @@ export class PixelEditor {
       if (this.floating) {
         this.commitFloat();
       }
-      this.startSelection(point, tool === 'ellipseSelect' ? 'ellipse' : 'rect', this.selectionMode(event));
+      this.startSelection(
+        point,
+        tool === 'ellipseSelect' ? 'ellipse' : 'rect',
+        this.selectionMode(event),
+        event.shiftKey,
+        event.altKey
+      );
       return;
     }
 
@@ -1431,7 +1439,13 @@ export class PixelEditor {
 
     if (this.selecting) {
       const point = this.clampedPoint(event.clientX, event.clientY);
-      const clamped = this.clampSelection(this.rectFromPoints(this.selectAnchor, point));
+      const rect = this.constrainedRect(
+        this.selectAnchor,
+        point,
+        event.shiftKey && !this.selectInitialShift,
+        event.altKey && !this.selectInitialAlt
+      );
+      const clamped = this.clampSelection(rect);
       this.selectPreview = clamped;
       this.updateStatusInfo();
       this.needsRender = true;
@@ -1485,7 +1499,13 @@ export class PixelEditor {
       this.strokeChanged = false;
     }
     if (this.selecting) {
-      const clamped = this.clampSelection(this.rectFromPoints(this.selectAnchor, finalPoint));
+      const rect = this.constrainedRect(
+        this.selectAnchor,
+        finalPoint,
+        event.shiftKey && !this.selectInitialShift,
+        event.altKey && !this.selectInitialAlt
+      );
+      const clamped = this.clampSelection(rect);
       const moved = clamped !== null && (clamped.w > 1 || clamped.h > 1);
       const addition = moved && clamped ? this.selectionFromShape(clamped, this.selectShape) : null;
       this.selection = this.combineSelection(this.selectBase, addition, this.selectMode);
@@ -2036,10 +2056,18 @@ export class PixelEditor {
     this.showToast(this.t('toast.picked', { hex }));
   }
 
-  private startSelection(point: Point, shape: 'rect' | 'ellipse' = 'rect', mode: SelectionMode = 'replace'): void {
+  private startSelection(
+    point: Point,
+    shape: 'rect' | 'ellipse' = 'rect',
+    mode: SelectionMode = 'replace',
+    initialShift = false,
+    initialAlt = false
+  ): void {
     this.selecting = true;
     this.selectShape = shape;
     this.selectMode = mode;
+    this.selectInitialShift = initialShift;
+    this.selectInitialAlt = initialAlt;
     this.selectBase = this.selection ? this.cloneSelection(this.selection) : null;
     this.selectAnchor = point;
     this.selectPreview = { x: point.x, y: point.y, w: 1, h: 1 };

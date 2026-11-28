@@ -8,6 +8,7 @@
 - The canvas now takes keyboard focus when clicked, so editor shortcuts work after drawing.
 - Added VS Code keybindings for copy, cut, paste, select all, and deselect, preserving native text-field editing.
 - Shift now adds to the selection and Alt subtracts from it, including the magic wand.
+- Selection modifiers are read when the drag starts. Pressing Shift or Alt during the drag constrains it to a square/circle or draws it from the center instead.
 - Selection tools no longer move the selected pixels; use the Move tool (V) to drag them.
 - Added temporary Photoshop-style layers with visibility, opacity, rename, duplicate, delete, reorder, and merge down.
 - Copy and cut read pixels from the active layer; paste creates a new layer above it.
