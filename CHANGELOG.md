@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.3
+
+- Removed the internal Marketplace publishing notes from the public README.
+
 ## 0.5.2
 
 - Extension ID changed from `basilio.pixel-art-editor` to `basilio.pixel-art-spritesheet-editor`.

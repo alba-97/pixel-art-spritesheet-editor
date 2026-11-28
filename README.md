@@ -30,7 +30,7 @@ A complete pixel art editor inside VS Code, with drawing and selection tools, un
 ### From a VSIX file
 
 ```sh
-code --install-extension pixel-art-spritesheet-editor-0.5.2.vsix
+code --install-extension pixel-art-spritesheet-editor-0.5.3.vsix
 ```
 
 You can also open the Extensions view, click the three dots, choose **Install from VSIX...**, and select the file.
