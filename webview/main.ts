@@ -2671,6 +2671,7 @@ export class PixelEditor {
     this.pasteLayerId = layer.id;
     this.prePasteLayerId = previousLayerId;
     this.renderLayerPanel();
+    this.setTool('move', false);
     this.preFloat = this.cloneBuffer();
     this.preFloatSelection = this.selection ? this.cloneSelection(this.selection) : null;
     const canvas = createCanvas(source.w, source.h);
